@@ -1,7 +1,8 @@
+import 'package:delta_mobile/pages/inicio_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart'; // Este es necesario
-import 'package:delta_mobile/pages/admin_page.dart';
+// import 'package:delta_mobile/pages/admin_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Gimnasio App',
-      home: AdminPage(),
+      home: InicioPage(),
     );
   }
 }

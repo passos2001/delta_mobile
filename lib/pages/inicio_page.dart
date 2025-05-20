@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'admin_page.dart';
 import 'user_page.dart';
+// import 'package:delta_mobile/main.dart';
 
 class InicioPage extends StatefulWidget {
   const InicioPage({Key? key}) : super(key: key);
@@ -27,17 +28,18 @@ class _InicioPageState extends State<InicioPage> {
     setState(() => cargando = true);
 
     try {
-      final snapshot =
+      // Buscar primero en Admin
+      final adminSnapshot =
           await FirebaseFirestore.instance
-              .collection('usuarios')
-              .where('id', isEqualTo: idIngresado)
+              .collection('Admin')
+              .where('cedula', isEqualTo: idIngresado)
               .get();
 
-      if (snapshot.docs.isNotEmpty) {
-        final data = snapshot.docs.first.data();
-        final bool esAdmin = data['rol'] == 'admin';
+      if (adminSnapshot.docs.isNotEmpty) {
+        final adminData = adminSnapshot.docs.first.data();
+        final rol = adminData['rol'] ?? '';
 
-        if (esAdmin) {
+        if (rol == 'admin') {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const AdminPage()),
@@ -45,9 +47,28 @@ class _InicioPageState extends State<InicioPage> {
         } else {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const UserPage()),
+            MaterialPageRoute(
+              builder: (_) => UserPage(id: idIngresado),
+            ), // ✅ Pasar el ID
           );
         }
+        return;
+      }
+
+      // Si no está en Admin, buscar en Usuario
+      final userSnapshot =
+          await FirebaseFirestore.instance
+              .collection('Usuario')
+              .where('cedula', isEqualTo: idIngresado)
+              .get();
+
+      if (userSnapshot.docs.isNotEmpty) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => UserPage(id: idIngresado),
+          ), // ✅ Pasar el ID
+        );
       } else {
         ScaffoldMessenger.of(
           context,
@@ -68,14 +89,14 @@ class _InicioPageState extends State<InicioPage> {
       body: Stack(
         children: [
           // Fondo con imagen
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/fondo_gimnasio.jpg'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
+          // Container(
+          //   decoration: const BoxDecoration(
+          //     image: DecorationImage(
+          //       image: AssetImage('assets/fondo_gimnasio.jpg'),
+          //       fit: BoxFit.cover,
+          //     ),
+          //   ),
+          // ),
           // Capa oscura con desenfoque (Glassmorphism)
           Container(color: Colors.black.withOpacity(0.6)),
           // Contenido de login
@@ -92,7 +113,7 @@ class _InicioPageState extends State<InicioPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      'Welcome Back',
+                      'Bienvenido a Fuerza Delta',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -101,7 +122,7 @@ class _InicioPageState extends State<InicioPage> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Ingresa tu ID',
+                      'Ingresa tu cédula',
                       style: TextStyle(color: Colors.white70),
                     ),
                     const SizedBox(height: 16),
@@ -136,7 +157,7 @@ class _InicioPageState extends State<InicioPage> {
                             cargando
                                 ? const CircularProgressIndicator()
                                 : const Text(
-                                  'Log in',
+                                  'Iniciar Sesión',
                                   style: TextStyle(fontSize: 16),
                                 ),
                       ),
