@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1044751998227",
+    "project_id": "deltamobile-507be",
+    "storage_bucket": "deltamobile-507be.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1044751998227:android:7c08fd9ff8fd5e571e8ee6",
+        "android_client_info": {
+          "package_name": "delta.mobile1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDExHtdq0NgJNhIFUetxOConpRf91o4x7E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
