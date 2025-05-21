@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'inicio_page.dart';
 
 class AdminPage extends StatefulWidget {
-  const AdminPage({Key? key}) : super(key: key);
+  final String cedulaAdmin;
+
+  const AdminPage({Key? key, required this.cedulaAdmin}) : super(key: key);
 
   @override
   State<AdminPage> createState() => _AdminPageState();
@@ -21,9 +23,42 @@ class _AdminPageState extends State<AdminPage> {
   String? _tipoPlan;
   String _edadCalculada = '';
 
+  String? nombreAdmin;
+
   final CollectionReference usuarios = FirebaseFirestore.instance.collection(
     'Usuario',
   );
+
+  @override
+  void initState() {
+    super.initState();
+    obtenerNombreAdmin();
+  }
+
+  Future<void> obtenerNombreAdmin() async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection('Admin')
+              .where('cedula', isEqualTo: widget.cedulaAdmin.trim())
+              .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final data = snapshot.docs.first.data() as Map<String, dynamic>;
+        setState(() {
+          nombreAdmin = data['nombre'] ?? 'Administrador';
+        });
+      } else {
+        setState(() {
+          nombreAdmin = 'Administrador';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        nombreAdmin = 'Administrador';
+      });
+    }
+  }
 
   int calcularEdad(DateTime fechaNacimiento) {
     final hoy = DateTime.now();
@@ -167,11 +202,14 @@ class _AdminPageState extends State<AdminPage> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
-              child: Text(
-                'Admin',
-                style: TextStyle(color: Colors.white, fontSize: 24),
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Colors.blue),
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Text(
+                  nombreAdmin ?? 'Cargando...',
+                  style: const TextStyle(color: Colors.white, fontSize: 24),
+                ),
               ),
             ),
             ListTile(

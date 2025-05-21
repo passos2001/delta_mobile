@@ -42,7 +42,12 @@ class _InicioPageState extends State<InicioPage> {
         if (rol == 'admin') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const AdminPage()),
+            MaterialPageRoute(
+              builder:
+                  (_) => AdminPage(
+                    cedulaAdmin: idIngresado,
+                  ), // <-- PASAR LA CÉDULA AQUÍ
+            ),
           );
         } else {
           Navigator.push(
