@@ -21,7 +21,7 @@ class _AdminPageState extends State<AdminPage> {
   DateTime? _fechaIngreso;
   String? _sexo;
   String? _tipoPlan;
-  String _edadCalculada = '';
+  String edadCalculada = '';
 
   String? nombreAdmin;
 
@@ -74,12 +74,12 @@ class _AdminPageState extends State<AdminPage> {
     if (_fechaNacimiento != null) {
       final edad = calcularEdad(_fechaNacimiento!);
       setState(() {
-        _edadCalculada = edad.toString();
+        edadCalculada = edad.toString();
       });
     }
   }
 
-  Future<void> registrarUsuario() async {
+  Future<void> registrarOActualizarUsuario() async {
     if (_fechaNacimiento == null ||
         _fechaIngreso == null ||
         _sexo == null ||
@@ -90,10 +90,12 @@ class _AdminPageState extends State<AdminPage> {
       return;
     }
 
-    final int edad = calcularEdad(_fechaNacimiento!);
+    final cedula = _cedulaController.text.trim();
+    final query = await usuarios.where('cedula', isEqualTo: cedula).get();
 
-    await usuarios.add({
-      'cedula': _cedulaController.text.trim(),
+    final int edad = calcularEdad(_fechaNacimiento!);
+    final usuarioData = {
+      'cedula': cedula,
       'nombre': _nombreController.text.trim(),
       'telefono': _telefonoController.text.trim(),
       'fechaNacimiento': _fechaNacimiento!.toIso8601String(),
@@ -103,12 +105,24 @@ class _AdminPageState extends State<AdminPage> {
       'tipoPlan': _tipoPlan!,
       'valor_pagado': _valorPagadoController.text.trim(),
       'rol': 'usuario',
-    });
+    };
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Usuario registrado correctamente')),
-    );
+    if (query.docs.isNotEmpty) {
+      await usuarios.doc(query.docs.first.id).update(usuarioData);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario actualizado correctamente')),
+      );
+    } else {
+      await usuarios.add(usuarioData);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario registrado correctamente')),
+      );
+    }
 
+    limpiarCampos();
+  }
+
+  void limpiarCampos() {
     _cedulaController.clear();
     _nombreController.clear();
     _telefonoController.clear();
@@ -119,7 +133,7 @@ class _AdminPageState extends State<AdminPage> {
       _fechaIngreso = null;
       _sexo = null;
       _tipoPlan = null;
-      _edadCalculada = '';
+      edadCalculada = '';
     });
   }
 
@@ -144,7 +158,7 @@ class _AdminPageState extends State<AdminPage> {
                 : null;
         _fechaIngreso =
             data['fecha'] != null ? DateTime.tryParse(data['fecha']) : null;
-        _edadCalculada = data['edad'] ?? '';
+        edadCalculada = data['edad'] ?? '';
       });
 
       ScaffoldMessenger.of(
@@ -181,7 +195,7 @@ class _AdminPageState extends State<AdminPage> {
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // Cierra el diálogo
+                  Navigator.of(context).pop();
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(builder: (_) => const InicioPage()),
                     (route) => false,
@@ -197,7 +211,7 @@ class _AdminPageState extends State<AdminPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrar Usuario')),
+      appBar: AppBar(title: const Text('Registrar/Actualizar Usuario')),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -282,7 +296,7 @@ class _AdminPageState extends State<AdminPage> {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Edad: $_edadCalculada años'),
+            Text('Edad: $edadCalculada años'),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -317,8 +331,8 @@ class _AdminPageState extends State<AdminPage> {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: registrarUsuario,
-                    child: const Text('Registrar Usuario'),
+                    onPressed: registrarOActualizarUsuario,
+                    child: const Text('Registrar / Actualizar'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -329,6 +343,70 @@ class _AdminPageState extends State<AdminPage> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 30),
+            FutureBuilder<QuerySnapshot>(
+              future: FirebaseFirestore.instance.collection('Usuario').get(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Text('No hay usuarios registrados.');
+                }
+
+                final hoy = DateTime.now();
+                final manana = hoy.add(const Duration(days: 1));
+                final usuarios = snapshot.data!.docs;
+
+                final usuariosPorVencer =
+                    usuarios.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final tipoPlan = data['tipoPlan'];
+                      final fechaIngresoStr = data['fecha'];
+
+                      if (tipoPlan == null || fechaIngresoStr == null)
+                        return false;
+
+                      final diasPlan =
+                          {
+                            'Mensual': 30,
+                            'Bimestre': 60,
+                            'Trimestre': 90,
+                          }[tipoPlan];
+
+                      if (diasPlan == null) return false;
+
+                      final fechaIngreso = DateTime.tryParse(fechaIngresoStr);
+                      if (fechaIngreso == null) return false;
+
+                      final fechaVencimiento = fechaIngreso.add(
+                        Duration(days: diasPlan),
+                      );
+                      return fechaVencimiento.year == manana.year &&
+                          fechaVencimiento.month == manana.month &&
+                          fechaVencimiento.day == manana.day;
+                    }).toList();
+
+                if (usuariosPorVencer.isEmpty) {
+                  return const Text('No hay usuarios por vencer mañana.');
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Usuarios por vencer:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    ...usuariosPorVencer.map((usuario) {
+                      final data = usuario.data() as Map<String, dynamic>;
+                      return Text('- ${data['nombre'] ?? 'Sin nombre'}');
+                    }).toList(),
+                  ],
+                );
+              },
             ),
           ],
         ),
